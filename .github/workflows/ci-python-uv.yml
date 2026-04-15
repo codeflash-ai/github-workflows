@@ -56,6 +56,10 @@ on:
         description: "Type-check command (empty to skip)"
         type: string
         default: ""
+      typecheck-env:
+        description: "JSON object of extra env vars for the typecheck job"
+        type: string
+        default: "{}"
       test-command:
         description: "Test command (empty to skip)"
         type: string
@@ -113,6 +117,7 @@ jobs:
       - run: ${{ inputs.sync-command }}
       - name: Type check
         run: ${{ inputs.typecheck-command }}
+        env: ${{ fromJSON(inputs.typecheck-env) }}
 
   test:
     if: inputs.test-command != ''
