@@ -1,0 +1,159 @@
+# Reusable CI workflow for Python projects using uv.
+#
+# Provides up to four parallel jobs: lint, typecheck, test, extra.
+# Each is optional -- omit the command input (or leave empty) to skip it.
+#
+# Usage (standalone repo):
+#
+#   jobs:
+#     ci:
+#       uses: codeflash-ai/github-workflows/.github/workflows/ci-python-uv.yml@main
+#       with:
+#         python-version: "3.12"
+#         lint-command: "uv run ruff check && uv run ruff format --check"
+#         typecheck-command: "uv run mypy src/"
+#         test-command: "uv run pytest tests/ -v"
+#       secrets: inherit
+#
+# Usage (monorepo subdirectory):
+#
+#   jobs:
+#     ci:
+#       uses: codeflash-ai/github-workflows/.github/workflows/ci-python-uv.yml@main
+#       with:
+#         working-directory: "django/aiservice"
+#         sync-command: "uv sync"
+#         typecheck-command: "uv run mypy --non-interactive --config-file pyproject.toml @mypy_allowlist.txt"
+#         test-command: "uv run pytest"
+#       secrets: inherit
+
+name: CI (Python + uv)
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: "Python version"
+        type: string
+        default: "3.12"
+      uv-version:
+        description: "astral-sh/setup-uv version tag"
+        type: string
+        default: "v6"
+      working-directory:
+        description: "Working directory for all commands (for monorepo subdirs)"
+        type: string
+        default: "."
+      sync-command:
+        description: "Dependency install command"
+        type: string
+        default: "uv sync --all-packages"
+      lint-command:
+        description: "Lint command (empty to skip)"
+        type: string
+        default: ""
+      typecheck-command:
+        description: "Type-check command (empty to skip)"
+        type: string
+        default: ""
+      test-command:
+        description: "Test command (empty to skip)"
+        type: string
+        default: ""
+      test-env:
+        description: "JSON object of extra env vars for the test job"
+        type: string
+        default: "{}"
+      extra-command:
+        description: "Additional check command (empty to skip)"
+        type: string
+        default: ""
+      extra-command-name:
+        description: "Display name for the extra check"
+        type: string
+        default: "extra"
+
+jobs:
+  lint:
+    if: inputs.lint-command != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+      - uses: astral-sh/setup-uv@${{ inputs.uv-version }}
+        with:
+          enable-cache: true
+      - run: ${{ inputs.sync-command }}
+      - name: Lint
+        run: ${{ inputs.lint-command }}
+
+  typecheck:
+    if: inputs.typecheck-command != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+      - uses: astral-sh/setup-uv@${{ inputs.uv-version }}
+        with:
+          enable-cache: true
+      - run: ${{ inputs.sync-command }}
+      - name: Type check
+        run: ${{ inputs.typecheck-command }}
+
+  test:
+    if: inputs.test-command != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+      - uses: astral-sh/setup-uv@${{ inputs.uv-version }}
+        with:
+          enable-cache: true
+      - run: ${{ inputs.sync-command }}
+      - name: Test
+        run: ${{ inputs.test-command }}
+        env: ${{ fromJSON(inputs.test-env) }}
+
+  extra:
+    if: inputs.extra-command != ''
+    name: ${{ inputs.extra-command-name }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+      - uses: astral-sh/setup-uv@${{ inputs.uv-version }}
+        with:
+          enable-cache: true
+      - run: ${{ inputs.sync-command }}
+      - name: ${{ inputs.extra-command-name }}
+        run: ${{ inputs.extra-command }}
