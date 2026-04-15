@@ -21,6 +21,9 @@ Reusable CI for Python projects using [uv](https://docs.astral.sh/uv/). Runs up 
 | `test-env` | `"{}"` | JSON object of extra env vars for test |
 | `extra-command` | `""` | Additional check (empty to skip) |
 | `extra-command-name` | `"extra"` | Display name for extra check |
+| `test-python-versions` | `""` | JSON array of Python versions for the test matrix (overrides `python-version` for test job) |
+| `test-os` | `'["ubuntu-latest"]'` | JSON array of runner OSes for the test matrix |
+| `test-fail-fast` | `true` | Stop remaining test matrix jobs on first failure |
 
 > **Secrets:** For jobs that need secrets as env vars, keep those as local jobs in your caller workflow and use this reusable workflow for secret-free jobs.
 
@@ -49,6 +52,26 @@ jobs:
       test-command: "uv run pytest tests/ -v"
       test-env: '{"CI": "true"}'
     secrets: inherit
+```
+
+**Example -- multi-version test matrix:**
+
+```yaml
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  ci:
+    uses: codeflash-ai/github-workflows/.github/workflows/ci-python-uv.yml@main
+    with:
+      sync-command: "uv sync"
+      test-command: "uv run pytest tests/"
+      test-python-versions: '["3.9", "3.10", "3.11", "3.12"]'
+      test-fail-fast: false
 ```
 
 **Example -- monorepo hybrid pattern (shared workflow + local job for secrets):**

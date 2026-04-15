@@ -19,6 +19,15 @@
 #         test-env: '{"CI": "true"}'
 #       secrets: inherit
 #
+# Usage (multi-version test matrix):
+#
+#   jobs:
+#     ci:
+#       uses: codeflash-ai/github-workflows/.github/workflows/ci-python-uv.yml@main
+#       with:
+#         test-command: "uv run pytest tests/ -v"
+#         test-python-versions: '["3.9", "3.10", "3.11", "3.12"]'
+#
 # Usage (monorepo with secrets needed in env):
 #   For jobs that need secrets as env vars, keep those jobs in a local
 #   workflow and use this reusable workflow for the rest.
@@ -64,6 +73,18 @@ on:
         description: "Display name for the extra check"
         type: string
         default: "extra"
+      test-python-versions:
+        description: "JSON array of Python versions for the test matrix (overrides python-version for test job)"
+        type: string
+        default: ""
+      test-os:
+        description: "JSON array of runner OSes for the test matrix"
+        type: string
+        default: '["ubuntu-latest"]'
+      test-fail-fast:
+        description: "Stop remaining test matrix jobs on first failure"
+        type: boolean
+        default: true
 
 jobs:
   lint:
@@ -104,7 +125,12 @@ jobs:
 
   test:
     if: inputs.test-command != ''
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: ${{ inputs.test-fail-fast }}
+      matrix:
+        python-version: ${{ fromJSON(inputs.test-python-versions || format('["{0}"]', inputs.python-version)) }}
+        os: ${{ fromJSON(inputs.test-os) }}
+    runs-on: ${{ matrix.os }}
     permissions:
       contents: read
     defaults:
@@ -114,7 +140,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v8.0.0
         with:
-          python-version: ${{ inputs.python-version }}
+          python-version: ${{ matrix.python-version }}
           enable-cache: true
       - run: ${{ inputs.sync-command }}
       - name: Test
