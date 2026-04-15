@@ -13,11 +13,11 @@ Reusable CI for Python projects using [uv](https://docs.astral.sh/uv/). Runs up 
 | Input | Default | Description |
 |---|---|---|
 | `python-version` | `"3.12"` | Python version |
-| `uv-version` | `"v6"` | `astral-sh/setup-uv` tag |
 | `working-directory` | `"."` | Working directory (for monorepo subdirs) |
 | `sync-command` | `"uv sync --all-packages"` | Dependency install command |
 | `lint-command` | `""` | Lint command (empty to skip) |
 | `typecheck-command` | `""` | Type-check command (empty to skip) |
+| `typecheck-env` | `"{}"` | JSON object of extra env vars for typecheck |
 | `test-command` | `""` | Test command (empty to skip) |
 | `test-env` | `"{}"` | JSON object of extra env vars for test |
 | `extra-command` | `""` | Additional check (empty to skip) |
