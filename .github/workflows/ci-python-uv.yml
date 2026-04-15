@@ -3,29 +3,25 @@
 # Provides up to four parallel jobs: lint, typecheck, test, extra.
 # Each is optional -- omit the command input (or leave empty) to skip it.
 #
+# For non-secret env vars (like CI=true), use test-env JSON input.
+# For secrets, use secrets: inherit -- all inherited secrets are
+# automatically available in the called workflow's steps.
+#
 # Usage (standalone repo):
 #
 #   jobs:
 #     ci:
 #       uses: codeflash-ai/github-workflows/.github/workflows/ci-python-uv.yml@main
 #       with:
-#         python-version: "3.12"
 #         lint-command: "uv run ruff check && uv run ruff format --check"
 #         typecheck-command: "uv run mypy src/"
 #         test-command: "uv run pytest tests/ -v"
+#         test-env: '{"CI": "true"}'
 #       secrets: inherit
 #
-# Usage (monorepo subdirectory):
-#
-#   jobs:
-#     ci:
-#       uses: codeflash-ai/github-workflows/.github/workflows/ci-python-uv.yml@main
-#       with:
-#         working-directory: "django/aiservice"
-#         sync-command: "uv sync"
-#         typecheck-command: "uv run mypy --non-interactive --config-file pyproject.toml @mypy_allowlist.txt"
-#         test-command: "uv run pytest"
-#       secrets: inherit
+# Usage (monorepo with secrets needed in env):
+#   For jobs that need secrets as env vars, keep those jobs in a local
+#   workflow and use this reusable workflow for the rest.
 
 name: CI (Python + uv)
 
@@ -52,16 +48,12 @@ on:
         description: "Type-check command (empty to skip)"
         type: string
         default: ""
-      typecheck-env:
-        description: "JSON object of extra env vars for the typecheck job"
-        type: string
-        default: "{}"
       test-command:
         description: "Test command (empty to skip)"
         type: string
         default: ""
       test-env:
-        description: "JSON object of extra env vars for the test job"
+        description: "JSON object of extra env vars for the test job (non-secret values only)"
         type: string
         default: "{}"
       extra-command:
@@ -109,7 +101,6 @@ jobs:
       - run: ${{ inputs.sync-command }}
       - name: Type check
         run: ${{ inputs.typecheck-command }}
-        env: ${{ fromJSON(inputs.typecheck-env) }}
 
   test:
     if: inputs.test-command != ''
