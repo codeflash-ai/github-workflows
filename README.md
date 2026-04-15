@@ -17,11 +17,12 @@ Reusable CI for Python projects using [uv](https://docs.astral.sh/uv/). Runs up 
 | `sync-command` | `"uv sync --all-packages"` | Dependency install command |
 | `lint-command` | `""` | Lint command (empty to skip) |
 | `typecheck-command` | `""` | Type-check command (empty to skip) |
-| `typecheck-env` | `"{}"` | JSON object of extra env vars for typecheck |
 | `test-command` | `""` | Test command (empty to skip) |
 | `test-env` | `"{}"` | JSON object of extra env vars for test |
 | `extra-command` | `""` | Additional check (empty to skip) |
 | `extra-command-name` | `"extra"` | Display name for extra check |
+
+> **Secrets:** For jobs that need secrets as env vars, keep those as local jobs in your caller workflow and use this reusable workflow for secret-free jobs.
 
 **Example -- standalone repo:**
 
@@ -50,7 +51,7 @@ jobs:
     secrets: inherit
 ```
 
-**Example -- monorepo subdirectory:**
+**Example -- monorepo hybrid pattern (shared workflow + local job for secrets):**
 
 ```yaml
 name: AI Service CI
@@ -66,8 +67,23 @@ jobs:
       working-directory: "django/aiservice"
       sync-command: "uv sync"
       typecheck-command: "uv run mypy --non-interactive --config-file pyproject.toml @mypy_allowlist.txt"
-      test-command: "uv run pytest"
-    secrets: inherit
+
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: django/aiservice
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v8.0.0
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync
+      - name: Test
+        run: uv run pytest
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 ```
 
 ## Adding a new workflow
