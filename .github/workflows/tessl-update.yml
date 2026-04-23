@@ -12,6 +12,8 @@
 #       uses: codeflash-ai/github-workflows/.github/workflows/tessl-update.yml@main
 #       secrets:
 #         TESSL_TOKEN: ${{ secrets.TESSL_TOKEN }}
+#         CI_BOT_APP_ID: ${{ secrets.CI_BOT_APP_ID }}
+#         CI_BOT_PRIVATE_KEY: ${{ secrets.CI_BOT_PRIVATE_KEY }}
 
 name: Tessl Tile Updates
 
@@ -19,6 +21,10 @@ on:
   workflow_call:
     secrets:
       TESSL_TOKEN:
+        required: true
+      CI_BOT_APP_ID:
+        required: true
+      CI_BOT_PRIVATE_KEY:
         required: true
 
 permissions:
@@ -69,17 +75,26 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Generate app token
+        if: steps.changes.outputs.changed == 'true'
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.CI_BOT_APP_ID }}
+          private-key: ${{ secrets.CI_BOT_PRIVATE_KEY }}
+
       - name: Create PR with updates
         if: steps.changes.outputs.changed == 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           branch="chore/tessl-tile-updates-$(date +%Y%m%d)"
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "codeflash-ci-bot[bot]"
+          git config user.email "codeflash-ci-bot[bot]@users.noreply.github.com"
           git checkout -b "$branch"
           git add tessl.json .tessl/
           git commit -m "chore: update tessl tiles $(date +%Y-%m-%d)"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
           git push origin "$branch"
           printf -v pr_body '%s\n' \
             '## Summary' \
