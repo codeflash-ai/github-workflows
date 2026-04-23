@@ -118,6 +118,8 @@ Reusable workflow for keeping [tessl](https://tessl.io) tiles up to date. Update
 | Secret | Required | Description |
 |---|---|---|
 | `TESSL_TOKEN` | Yes | Tessl API token for the workspace |
+| `CI_BOT_APP_ID` | Yes | GitHub App ID for `codeflash-ci-bot` |
+| `CI_BOT_PRIVATE_KEY` | Yes | Private key for `codeflash-ci-bot` |
 
 **Missing tiles file (`.tessl/missing-tiles.txt`):**
 
@@ -148,6 +150,8 @@ jobs:
     uses: codeflash-ai/github-workflows/.github/workflows/tessl-update.yml@main
     secrets:
       TESSL_TOKEN: ${{ secrets.TESSL_TOKEN }}
+      CI_BOT_APP_ID: ${{ secrets.CI_BOT_APP_ID }}
+      CI_BOT_PRIVATE_KEY: ${{ secrets.CI_BOT_PRIVATE_KEY }}
 ```
 
 ---
