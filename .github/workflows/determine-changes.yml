@@ -1,0 +1,61 @@
+name: Determine Changes
+
+on:
+  workflow_call:
+    inputs:
+      path-filters:
+        description: >
+          JSON object mapping flag names to arrays of paths.
+          Example: {"unit_tests": ["src/", "tests/"], "lint": ["src/"]}
+        type: string
+        required: true
+    outputs:
+      flags:
+        description: >
+          JSON object mapping flag names to "true"/"false" strings.
+          On push/workflow_dispatch, all flags are "true".
+          On pull_request, flags reflect which paths changed.
+        value: ${{ jobs.detect.outputs.flags }}
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      flags: ${{ steps.result.outputs.flags }}
+    steps:
+      - uses: actions/checkout@v6
+        if: github.event_name == 'pull_request'
+        with:
+          fetch-depth: 0
+
+      - name: Determine merge base
+        if: github.event_name == 'pull_request'
+        id: merge_base
+        run: |
+          sha=$(git merge-base HEAD "origin/${{ github.event.pull_request.base.ref }}")
+          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Check changed paths
+        id: result
+        run: |
+          FILTERS='${{ inputs.path-filters }}'
+
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            # On push/workflow_dispatch, all flags are true
+            FLAGS=$(echo "$FILTERS" | jq -r 'to_entries | map({key: .key, value: "true"}) | from_entries')
+          else
+            FLAGS="{}"
+            for key in $(echo "$FILTERS" | jq -r 'keys[]'); do
+              PATHS=$(echo "$FILTERS" | jq -r --arg k "$key" '.[$k][]')
+              # shellcheck disable=SC2086
+              if ! git diff --quiet "${{ steps.merge_base.outputs.sha }}...HEAD" -- $PATHS 2>/dev/null; then
+                FLAGS=$(echo "$FLAGS" | jq --arg k "$key" '. + {($k): "true"}')
+              else
+                FLAGS=$(echo "$FLAGS" | jq --arg k "$key" '. + {($k): "false"}')
+              fi
+            done
+          fi
+
+          echo "flags=$FLAGS" >> "$GITHUB_OUTPUT"
