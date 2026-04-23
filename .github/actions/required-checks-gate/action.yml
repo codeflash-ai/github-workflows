@@ -1,0 +1,22 @@
+name: Required Checks Gate
+description: Verify all upstream jobs passed or were skipped. Use in a gate job with `if: always()`.
+
+inputs:
+  needs-json:
+    description: 'Pass ${{ toJSON(needs) }} — the needs context from the calling job'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Verify all required jobs passed
+      shell: bash
+      run: |
+        failing=$(echo "$NEEDS_JSON" | jq -r 'to_entries[] | select(.value.result != "success" and .value.result != "skipped") | "\(.key): \(.value.result)"')
+        if [ -n "$failing" ]; then
+          echo "::error::Required jobs failed or were cancelled:"
+          echo "$failing"
+          exit 1
+        fi
+      env:
+        NEEDS_JSON: ${{ inputs.needs-json }}
