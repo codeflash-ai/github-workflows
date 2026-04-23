@@ -139,6 +139,10 @@ on:
     - cron: "0 9 * * 1"
   workflow_dispatch:
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   tessl:
     uses: codeflash-ai/github-workflows/.github/workflows/tessl-update.yml@main
