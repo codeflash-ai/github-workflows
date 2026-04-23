@@ -43,17 +43,16 @@ jobs:
           FILTERS='${{ inputs.path-filters }}'
 
           if [ "${{ github.event_name }}" != "pull_request" ]; then
-            # On push/workflow_dispatch, all flags are true
-            FLAGS=$(echo "$FILTERS" | jq -r 'to_entries | map({key: .key, value: "true"}) | from_entries')
+            FLAGS=$(echo "$FILTERS" | jq -c 'to_entries | map({key: .key, value: "true"}) | from_entries')
           else
             FLAGS="{}"
             for key in $(echo "$FILTERS" | jq -r 'keys[]'); do
               PATHS=$(echo "$FILTERS" | jq -r --arg k "$key" '.[$k][]')
               # shellcheck disable=SC2086
               if ! git diff --quiet "${{ steps.merge_base.outputs.sha }}...HEAD" -- $PATHS 2>/dev/null; then
-                FLAGS=$(echo "$FLAGS" | jq --arg k "$key" '. + {($k): "true"}')
+                FLAGS=$(echo "$FLAGS" | jq -c --arg k "$key" '. + {($k): "true"}')
               else
-                FLAGS=$(echo "$FLAGS" | jq --arg k "$key" '. + {($k): "false"}')
+                FLAGS=$(echo "$FLAGS" | jq -c --arg k "$key" '. + {($k): "false"}')
               fi
             done
           fi
