@@ -1,11 +1,13 @@
 # Reusable CI workflow for Python projects using uv.
 #
 # Provides up to four parallel jobs: lint, typecheck, test, extra.
-# Each is optional -- omit the command input (or leave empty) to skip it.
+# Each is optional — omit the command input (or leave empty) to skip it.
 #
-# For non-secret env vars (like CI=true), use test-env JSON input.
-# For secrets, use secrets: inherit -- all inherited secrets are
-# automatically available in the called workflow's steps.
+# For non-secret env vars, use test-env JSON input.
+# For secrets as env vars, use secrets: inherit + test-secret-env input.
+# The test-secret-env input is a JSON object mapping env var names to
+# secret names. The workflow reads those secrets (available via inherit)
+# and exports them as env vars for the test step.
 #
 # Usage (standalone repo):
 #
@@ -19,6 +21,17 @@
 #         test-env: '{"CI": "true"}'
 #       secrets: inherit
 #
+# Usage (with secrets as env vars):
+#
+#   jobs:
+#     ci:
+#       uses: codeflash-ai/github-workflows/.github/workflows/ci-python-uv.yml@main
+#       with:
+#         working-directory: "django/aiservice"
+#         test-command: "uv run pytest"
+#         test-secret-env: '{"DATABASE_URL": "DATABASE_URL", "API_KEY": "AZURE_OPENAI_API_KEY"}'
+#       secrets: inherit
+#
 # Usage (multi-version test matrix):
 #
 #   jobs:
@@ -27,10 +40,6 @@
 #       with:
 #         test-command: "uv run pytest tests/ -v"
 #         test-python-versions: '["3.9", "3.10", "3.11", "3.12"]'
-#
-# Usage (monorepo with secrets needed in env):
-#   For jobs that need secrets as env vars, keep those jobs in a local
-#   workflow and use this reusable workflow for the rest.
 
 name: CI (Python + uv)
 
@@ -63,6 +72,10 @@ on:
         default: ""
       test-env:
         description: "JSON object of extra env vars for the test job (non-secret values only)"
+        type: string
+        default: "{}"
+      test-secret-env:
+        description: "JSON object mapping env var names to secret names, e.g. {\"DB_URL\": \"DATABASE_URL\"}. Requires secrets: inherit."
         type: string
         default: "{}"
       extra-command:
@@ -143,6 +156,20 @@ jobs:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
       - run: ${{ inputs.sync-command }}
+      - name: Export secret env vars
+        if: inputs.test-secret-env != '{}'
+        shell: bash
+        env:
+          SECRET_ENV_MAP: ${{ inputs.test-secret-env }}
+          ALL_SECRETS: ${{ toJSON(secrets) }}
+        run: |
+          echo "$SECRET_ENV_MAP" | jq -r 'to_entries[] | "\(.key)=\(.value)"' | while IFS='=' read -r env_name secret_name; do
+            value=$(echo "$ALL_SECRETS" | jq -r --arg k "$secret_name" '.[$k] // empty')
+            if [ -n "$value" ]; then
+              echo "::add-mask::$value"
+              echo "$env_name=$value" >> "$GITHUB_ENV"
+            fi
+          done
       - name: Test
         run: ${{ inputs.test-command }}
         env: ${{ fromJSON(inputs.test-env) }}
