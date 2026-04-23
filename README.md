@@ -109,6 +109,45 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 ```
 
+### `tessl-update.yml`
+
+Reusable workflow for keeping [tessl](https://tessl.io) tiles up to date. Updates existing tiles and attempts to install tiles listed in `.tessl/missing-tiles.txt`. Opens a PR when changes are detected.
+
+**Secrets:**
+
+| Secret | Required | Description |
+|---|---|---|
+| `TESSL_TOKEN` | Yes | Tessl API token for the workspace |
+
+**Missing tiles file (`.tessl/missing-tiles.txt`):**
+
+One tile per line, `#` comments supported. Successfully installed tiles are removed automatically. When the file is empty it gets deleted.
+
+```
+# PyPI tiles not yet in the registry
+tessl/pypi-tree-sitter-javascript
+tessl/pypi-ruff
+```
+
+**Example:**
+
+```yaml
+name: Tessl Tile Updates
+
+on:
+  schedule:
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+jobs:
+  tessl:
+    uses: codeflash-ai/github-workflows/.github/workflows/tessl-update.yml@main
+    secrets:
+      TESSL_TOKEN: ${{ secrets.TESSL_TOKEN }}
+```
+
+---
+
 ## Adding a new workflow
 
 1. Create a new `.yml` file in `.github/workflows/`
