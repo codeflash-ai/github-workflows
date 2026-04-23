@@ -1,9 +1,9 @@
 name: Required Checks Gate
-description: Verify all upstream jobs passed or were skipped. Use in a gate job with `if: always()`.
+description: "Verify all upstream jobs passed or were skipped. Use in a gate job with if: always()."
 
 inputs:
   needs-json:
-    description: 'Pass ${{ toJSON(needs) }} — the needs context from the calling job'
+    description: "Pass ${{ toJSON(needs) }} — the needs context from the calling job"
     required: true
 
 runs:
