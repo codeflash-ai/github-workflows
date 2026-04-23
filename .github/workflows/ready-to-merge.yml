@@ -1,0 +1,10 @@
+name: Ready to Merge
+
+on:
+  workflow_call:
+
+jobs:
+  ready:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Branch is up to date"
