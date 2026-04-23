@@ -36,7 +36,7 @@ jobs:
           ref: ${{ inputs.checkout-ref || '' }}
           fetch-depth: 0
 
-      - uses: astral-sh/setup-uv@v8.0.0
+      - uses: astral-sh/setup-uv@v8.1.0
         with:
           enable-cache: true
 
