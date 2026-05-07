@@ -76,6 +76,7 @@ jobs:
       - run: ${{ inputs.sync-command }}
 
       - name: Run Playwright tests (${{ matrix.browser }})
+        shell: bash
         run: |
           BROWSER="${{ matrix.browser }}" && ${TEST_CMD/\$BROWSER/$BROWSER}
         env:
