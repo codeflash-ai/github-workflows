@@ -6,7 +6,8 @@ on:
       result:
         description: "Pass 'success' when all upstream jobs passed"
         type: string
-        required: true
+        required: false
+        default: "success"
 
 jobs:
   ready:
