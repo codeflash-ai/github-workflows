@@ -1,0 +1,91 @@
+# Reusable workflow for running Playwright E2E tests in a containerized
+# environment with browsers pre-installed. Eliminates the ~60s browser
+# install step by using Microsoft's official Playwright Docker images.
+#
+# Usage:
+#
+#   jobs:
+#     e2e:
+#       uses: codeflash-ai/github-workflows/.github/workflows/ci-e2e-playwright.yml@main
+#       with:
+#         playwright-version: "v1.59.0"
+#         test-command: "uv run pytest tests/e2e/ --browser $BROWSER -v"
+#
+# The $BROWSER placeholder in test-command is replaced with the matrix
+# browser value (chromium, firefox, or webkit) at runtime.
+
+name: E2E (Playwright)
+
+on:
+  workflow_call:
+    inputs:
+      playwright-version:
+        description: "Playwright version tag, e.g. v1.59.0"
+        type: string
+        required: true
+      base-image:
+        description: "Ubuntu base for the container image"
+        type: string
+        default: "noble"
+      browsers:
+        description: "JSON array of browsers to test"
+        type: string
+        default: '["chromium", "firefox", "webkit"]'
+      sync-command:
+        description: "Dependency install command"
+        type: string
+        default: "uv sync"
+      test-command:
+        description: "Pytest command template — use $BROWSER placeholder for browser name"
+        type: string
+        required: true
+      test-directory:
+        description: "Working directory for all commands"
+        type: string
+        default: "."
+      artifact-retention-days:
+        description: "How long to keep trace artifacts"
+        type: number
+        default: 7
+      fail-fast:
+        description: "Stop on first browser failure"
+        type: boolean
+        default: false
+
+jobs:
+  e2e:
+    strategy:
+      fail-fast: ${{ inputs.fail-fast }}
+      matrix:
+        browser: ${{ fromJSON(inputs.browsers) }}
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright/python:${{ inputs.playwright-version }}-${{ inputs.base-image }}
+      options: --user 1001
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.test-directory }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: astral-sh/setup-uv@v8.1.0
+        with:
+          enable-cache: true
+
+      - run: ${{ inputs.sync-command }}
+
+      - name: Run Playwright tests (${{ matrix.browser }})
+        run: |
+          BROWSER="${{ matrix.browser }}" && ${TEST_CMD/\$BROWSER/$BROWSER}
+        env:
+          TEST_CMD: ${{ inputs.test-command }}
+
+      - name: Upload traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces-${{ matrix.browser }}
+          path: ${{ inputs.test-directory }}/test-results/
+          retention-days: ${{ inputs.artifact-retention-days }}
