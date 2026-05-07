@@ -2,9 +2,18 @@ name: Ready to Merge
 
 on:
   workflow_call:
+    inputs:
+      result:
+        description: "Pass 'success' when all upstream jobs passed"
+        type: string
+        required: true
 
 jobs:
   ready:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Branch is up to date"
+      - run: |
+          if [ "${{ inputs.result }}" != "success" ]; then
+            echo "CI failed"
+            exit 1
+          fi
