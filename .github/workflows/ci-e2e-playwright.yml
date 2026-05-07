@@ -63,6 +63,8 @@ jobs:
       options: --user 1001
     permissions:
       contents: read
+    env:
+      UV_LINK_MODE: copy
     defaults:
       run:
         working-directory: ${{ inputs.test-directory }}
