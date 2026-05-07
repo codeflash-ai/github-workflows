@@ -154,6 +154,47 @@ jobs:
       CI_BOT_PRIVATE_KEY: ${{ secrets.CI_BOT_PRIVATE_KEY }}
 ```
 
+### `ci-e2e-playwright.yml`
+
+Reusable workflow for running [Playwright](https://playwright.dev/) E2E tests inside a Docker container with browsers pre-installed. Uses Microsoft's official `mcr.microsoft.com/playwright/python` images, eliminating the ~60s browser install step per job.
+
+**Inputs:**
+
+| Input | Default | Description |
+|---|---|---|
+| `playwright-version` | *(required)* | Playwright version tag, e.g. `"v1.59.0"` |
+| `base-image` | `"noble"` | Ubuntu base for the container image |
+| `browsers` | `'["chromium", "firefox", "webkit"]'` | JSON array of browsers to test |
+| `sync-command` | `"uv sync"` | Dependency install command |
+| `test-command` | *(required)* | Pytest command template -- use `$BROWSER` placeholder |
+| `test-directory` | `"."` | Working directory for all commands |
+| `artifact-retention-days` | `7` | How long to keep trace artifacts |
+| `fail-fast` | `false` | Stop on first browser failure |
+
+**Example:**
+
+```yaml
+name: E2E
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: e2e-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    uses: codeflash-ai/github-workflows/.github/workflows/ci-e2e-playwright.yml@main
+    with:
+      playwright-version: "v1.59.0"
+      test-command: "uv run pytest tests/e2e/ --browser $BROWSER -v --tracing on"
+      test-directory: "."
+      fail-fast: false
+```
+
 ---
 
 ## Adding a new workflow
