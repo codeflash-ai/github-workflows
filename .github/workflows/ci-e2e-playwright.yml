@@ -8,7 +8,6 @@
 #     e2e:
 #       uses: codeflash-ai/github-workflows/.github/workflows/ci-e2e-playwright.yml@main
 #       with:
-#         playwright-version: "v1.59.0"
 #         test-command: "uv run pytest tests/e2e/ --browser $BROWSER -v"
 #
 # The $BROWSER placeholder in test-command is replaced with the matrix
@@ -20,9 +19,9 @@ on:
   workflow_call:
     inputs:
       playwright-version:
-        description: "Playwright version tag, e.g. v1.59.0"
+        description: "Playwright version tag, e.g. v1.59.0 (defaults to latest)"
         type: string
-        required: true
+        default: "v1.59.0"
       base-image:
         description: "Ubuntu base for the container image"
         type: string
